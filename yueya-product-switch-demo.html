@@ -974,8 +974,8 @@
       if (!nextClass) return null;
 
       const noReset =
-        (current.currentClass === "adult" && nextClass === "y12") ||
-        (current.currentClass === "y12" && nextClass === "adult");
+        (current.currentClass === "adult" || current.currentClass === "y12") &&
+        (nextClass === "adult" || nextClass === "y12");
 
       if (noReset) {
         return { type: "none", reset: false };
@@ -1086,7 +1086,7 @@
 
       let copy = "";
       if (decision.type === "none") {
-        copy = "本次属于成人产系与 Y1/Y2-Hybrid 互转，仅调整产系，不触发工序重置。";
+        copy = "本次属于不经过文字方案的产系之间互转，沿用现有流程，不触发工序重置。";
         hint.classList.add("no-reset");
         adultHint.classList.add("no-reset");
       } else if (decision.type === "waitScan") {
