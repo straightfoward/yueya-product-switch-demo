@@ -1,0 +1,1257 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>悦芽产系版本切换与工序重置 Demo</title>
+  <style>
+    :root {
+      --mes-blue: #2998d0;
+      --mes-blue-dark: #1987bf;
+      --mes-cyan: #2bb5d6;
+      --text: #303133;
+      --muted: #7a838b;
+      --line: #dfe5ea;
+      --soft: #f5f7f9;
+      --danger: #f05b59;
+      --warning-bg: #fff8e8;
+      --warning-line: #edb95f;
+      --success: #37a978;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      color: var(--text);
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      font-size: 13px;
+      background: #edf1f4;
+    }
+
+    button,
+    select,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .page-shot {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      user-select: none;
+    }
+
+    .demo-toolbar {
+      position: fixed;
+      z-index: 10;
+      top: 16px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 8px 10px 8px 14px;
+      border: 1px solid rgba(21, 44, 62, 0.18);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 3px 12px rgba(25, 38, 49, 0.14);
+    }
+
+    .demo-toolbar label {
+      color: #52616c;
+      white-space: nowrap;
+    }
+
+    .demo-toolbar select {
+      width: 310px;
+      height: 30px;
+      padding: 0 30px 0 10px;
+      border: 1px solid #cfd8df;
+      border-radius: 2px;
+      color: #28343d;
+      background: #fff;
+      outline: none;
+    }
+
+    .entry-button {
+      position: fixed;
+      z-index: 8;
+      left: 61.9%;
+      bottom: 7px;
+      min-width: 74px;
+      height: 25px;
+      padding: 0 12px;
+      border: 1px solid var(--mes-blue-dark);
+      border-radius: 2px;
+      color: #fff;
+      background: var(--mes-blue);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55);
+    }
+
+    .entry-button:hover,
+    .primary-button:hover {
+      background: var(--mes-blue-dark);
+    }
+
+    .backdrop {
+      position: fixed;
+      z-index: 20;
+      inset: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 7vh 24px 24px;
+      background: rgba(0, 0, 0, 0.48);
+    }
+
+    .backdrop[hidden],
+    .dialog-layer[hidden],
+    .toast[hidden],
+    [hidden] {
+      display: none !important;
+    }
+
+    .product-modal {
+      display: flex;
+      flex-direction: column;
+      width: min(1120px, calc(100vw - 48px));
+      max-height: 86vh;
+      border: 1px solid #c9d2d9;
+      background: #fff;
+      box-shadow: 0 10px 30px rgba(14, 31, 42, 0.22);
+    }
+
+    .modal-header {
+      position: relative;
+      display: flex;
+      flex: 0 0 42px;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid #e3e8ec;
+      background: #fbfcfd;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .icon-close {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 42px;
+      height: 42px;
+      border: 0;
+      color: #9aa4ab;
+      background: transparent;
+      font-size: 19px;
+      line-height: 42px;
+    }
+
+    .icon-close:hover {
+      color: #4d5962;
+      background: #f0f3f5;
+    }
+
+    .modal-content {
+      flex: 1 1 auto;
+      overflow: auto;
+      padding: 26px 56px 24px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      padding-top: 4px;
+      color: #4d5962;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .required::before {
+      content: "*";
+      margin-right: 4px;
+      color: var(--danger);
+    }
+
+    .current-product {
+      min-height: 25px;
+      padding-top: 4px;
+      color: #4a545b;
+    }
+
+    .current-product strong {
+      color: #2c353b;
+      font-weight: 600;
+    }
+
+    .current-version-inline {
+      margin-left: 12px;
+      color: #78838a;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(130px, 1fr));
+      gap: 10px 14px;
+    }
+
+    .option-grid.version-grid {
+      grid-template-columns: repeat(4, minmax(170px, 1fr));
+      padding: 14px;
+      border: 1px solid #e1e7eb;
+      background: #fafbfc;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: flex-start;
+      min-width: 0;
+      color: #5e6970;
+      line-height: 18px;
+      cursor: pointer;
+    }
+
+    .radio-option input {
+      flex: 0 0 auto;
+      width: 14px;
+      height: 14px;
+      margin: 2px 7px 0 0;
+      accent-color: var(--mes-blue);
+    }
+
+    .radio-option span {
+      overflow-wrap: anywhere;
+    }
+
+    .radio-option:has(input:checked) span {
+      color: var(--mes-blue-dark);
+      font-weight: 600;
+    }
+
+    .radio-option:has(input:disabled) {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
+    .version-tag {
+      display: inline-block;
+      margin-left: 5px;
+      padding: 0 4px;
+      border: 1px solid #91cbe8;
+      border-radius: 2px;
+      color: #258bbd;
+      background: #eef8fd;
+      font-size: 11px;
+      line-height: 16px;
+      vertical-align: 1px;
+    }
+
+    .version-tag.current {
+      border-color: #c6cdd2;
+      color: #747f86;
+      background: #f1f3f4;
+    }
+
+    .rule-hint {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 9px 12px;
+      border-left: 3px solid var(--warning-line);
+      color: #795f2d;
+      background: var(--warning-bg);
+      line-height: 20px;
+    }
+
+    .rule-hint.no-reset {
+      border-left-color: #6eb695;
+      color: #3f765e;
+      background: #eef8f3;
+    }
+
+    .rule-hint.waiting {
+      border-left-color: #e49a42;
+      color: #7d5725;
+      background: #fff6e9;
+    }
+
+    .hint-icon {
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      text-align: center;
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    .upload-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .upload-trigger,
+    .upload-item {
+      position: relative;
+      width: 106px;
+      height: 62px;
+      border: 1px solid #cfd8df;
+      border-radius: 2px;
+      background: #fff;
+    }
+
+    .upload-trigger {
+      color: #5e6970;
+    }
+
+    .upload-trigger:hover {
+      border-color: var(--mes-blue);
+      color: var(--mes-blue-dark);
+    }
+
+    .upload-trigger[disabled] {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .upload-item {
+      display: grid;
+      grid-template-columns: 33px 1fr;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-color: #9fc8dd;
+      background: #f4fbfe;
+    }
+
+    .upload-thumb {
+      display: flex;
+      width: 33px;
+      height: 42px;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: linear-gradient(145deg, #51b8d8 0 50%, #86c85e 50% 100%);
+      font-size: 11px;
+    }
+
+    .upload-name {
+      overflow: hidden;
+      color: #4d5962;
+      font-size: 11px;
+      line-height: 16px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .remove-upload {
+      position: absolute;
+      top: -7px;
+      right: -7px;
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      border: 1px solid #c8d0d6;
+      border-radius: 50%;
+      color: #6f7a81;
+      background: #fff;
+      line-height: 15px;
+    }
+
+    .upload-note {
+      margin-top: 7px;
+      color: #68737a;
+      line-height: 19px;
+    }
+
+    .field-error {
+      margin-top: 6px;
+      color: var(--danger);
+      line-height: 18px;
+    }
+
+    .modal-footer {
+      display: flex;
+      flex: 0 0 48px;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-top: 1px solid #e2e7eb;
+      background: #f7f9fa;
+    }
+
+    .secondary-button,
+    .primary-button {
+      min-width: 54px;
+      height: 30px;
+      padding: 0 15px;
+      border-radius: 2px;
+    }
+
+    .secondary-button {
+      border: 1px solid #cfd7dd;
+      color: #56626a;
+      background: #fff;
+    }
+
+    .secondary-button:hover {
+      border-color: #9cabb5;
+      color: #313d45;
+    }
+
+    .primary-button {
+      border: 1px solid var(--mes-blue);
+      color: #fff;
+      background: var(--mes-blue);
+    }
+
+    .primary-button[disabled] {
+      cursor: wait;
+      border-color: #92c9e3;
+      background: #92c9e3;
+    }
+
+    .dialog-layer {
+      position: fixed;
+      z-index: 40;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.36);
+    }
+
+    .confirm-dialog,
+    .result-dialog {
+      width: min(620px, calc(100vw - 32px));
+      border: 1px solid #c9d2d9;
+      background: #fff;
+      box-shadow: 0 14px 35px rgba(16, 35, 48, 0.26);
+    }
+
+    .confirm-body {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 12px;
+      padding: 25px 28px 18px;
+    }
+
+    .confirm-mark {
+      display: flex;
+      width: 36px;
+      height: 36px;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #e5a94e;
+      border-radius: 50%;
+      color: #d89124;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .confirm-copy h2,
+    .result-body h2 {
+      margin: 2px 0 10px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .confirm-copy p {
+      margin: 0;
+      color: #535f67;
+      line-height: 23px;
+    }
+
+    .change-summary {
+      display: grid;
+      grid-template-columns: 1fr 24px 1fr;
+      gap: 10px;
+      align-items: center;
+      margin: 16px 0 0;
+      padding: 10px 12px;
+      border: 1px solid #e0e6ea;
+      background: #f8fafb;
+    }
+
+    .change-summary .arrow {
+      color: var(--mes-blue);
+      text-align: center;
+      font-size: 18px;
+    }
+
+    .change-cell span {
+      display: block;
+      margin-bottom: 4px;
+      color: #929ba1;
+      font-size: 11px;
+    }
+
+    .change-cell strong {
+      color: #334049;
+      font-weight: 600;
+    }
+
+    .process-preview {
+      margin: 12px 0 0;
+      padding: 12px;
+      border: 1px solid #dce6eb;
+      background: #fbfdfe;
+    }
+
+    .process-title {
+      margin-bottom: 10px;
+      color: #637078;
+      font-size: 12px;
+    }
+
+    .process-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+    }
+
+    .process-step {
+      min-height: 28px;
+      padding: 5px 9px;
+      border: 1px solid #b9d6e4;
+      border-radius: 2px;
+      color: #347795;
+      background: #eef8fc;
+      line-height: 16px;
+    }
+
+    .process-arrow {
+      color: #96a4ad;
+    }
+
+    .dialog-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 12px 20px;
+      border-top: 1px solid #e2e7eb;
+      background: #f7f9fa;
+    }
+
+    .result-body {
+      padding: 26px 28px 22px;
+    }
+
+    .result-heading {
+      display: flex;
+      gap: 13px;
+      align-items: flex-start;
+    }
+
+    .success-mark {
+      display: flex;
+      flex: 0 0 auto;
+      width: 38px;
+      height: 38px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--success);
+      font-size: 21px;
+      font-weight: 700;
+    }
+
+    .result-subtitle {
+      color: #66737b;
+      line-height: 20px;
+    }
+
+    .result-table {
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      margin-top: 20px;
+      border-top: 1px solid #e1e6e9;
+      border-left: 1px solid #e1e6e9;
+    }
+
+    .result-table div {
+      min-height: 37px;
+      padding: 8px 10px;
+      border-right: 1px solid #e1e6e9;
+      border-bottom: 1px solid #e1e6e9;
+      line-height: 20px;
+    }
+
+    .result-table .key {
+      color: #68757d;
+      background: #f7f9fa;
+    }
+
+    .result-table .value {
+      color: #354149;
+      background: #fff;
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 60;
+      top: 16px;
+      left: 50%;
+      display: flex;
+      width: max-content;
+      min-width: 300px;
+      max-width: calc(100vw - 32px);
+      min-height: 36px;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 12px;
+      transform: translateX(-50%);
+      border: 1px solid #9bcdb6;
+      border-radius: 3px;
+      color: #317153;
+      background: #f0faf5;
+      box-shadow: 0 4px 14px rgba(25, 54, 42, 0.16);
+      line-height: 20px;
+    }
+
+    .toast-icon {
+      display: flex;
+      flex: 0 0 auto;
+      width: 17px;
+      height: 17px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--success);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .toast-text {
+      flex: 1 1 auto;
+    }
+
+    .toast-close {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: 0;
+      color: #80a391;
+      background: transparent;
+      font-size: 16px;
+      line-height: 22px;
+    }
+
+    @media (max-width: 900px) {
+      .demo-toolbar {
+        right: 10px;
+        left: 10px;
+      }
+
+      .demo-toolbar select {
+        width: 100%;
+      }
+
+      .entry-button {
+        right: 18px;
+        left: auto;
+        bottom: 18px;
+        height: 34px;
+      }
+
+      .backdrop {
+        padding: 68px 8px 8px;
+      }
+
+      .product-modal {
+        width: 100%;
+        max-height: calc(100vh - 76px);
+      }
+
+      .modal-content {
+        padding: 20px 14px 16px;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .form-label {
+        text-align: left;
+      }
+
+      .option-grid,
+      .option-grid.version-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .confirm-body {
+        grid-template-columns: 34px 1fr;
+        padding: 20px 16px 16px;
+      }
+
+      .change-summary {
+        grid-template-columns: 1fr;
+      }
+
+      .change-summary .arrow {
+        transform: rotate(90deg);
+      }
+
+      .result-body {
+        padding: 20px 16px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .demo-toolbar label {
+        display: none;
+      }
+
+      .option-grid,
+      .option-grid.version-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .result-table {
+        grid-template-columns: 94px 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <img id="pageShot" class="page-shot" src="./mes-order-detail-adult.png" alt="MES 订单详情">
+
+  <div class="demo-toolbar">
+    <label for="scenarioSelect">测试订单</label>
+    <select id="scenarioSelect" aria-label="选择测试订单">
+      <optgroup label="口扫模型">
+        <option value="y1Oral">Y1-Hybrid｜悦芽启航4DHybrid-1年</option>
+        <option value="earlyOral">Y3-Hybrid｜悦芽全局4DHybrid套餐</option>
+        <option value="adultOral">悦见｜悦见·专业版</option>
+      </optgroup>
+      <optgroup label="石膏模型">
+        <option value="earlyStoneReady">Y3-Hybrid｜石膏已扫描</option>
+        <option value="earlyStoneWaiting">Y3-Hybrid｜石膏待扫描</option>
+      </optgroup>
+    </select>
+  </div>
+
+  <button id="entryButton" class="entry-button" type="button">产系变更</button>
+
+  <div id="switchBackdrop" class="backdrop" hidden>
+    <section class="product-modal" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
+      <header class="modal-header">
+        <span id="productModalTitle">产品系列调整</span>
+        <button class="icon-close" type="button" data-close-switch aria-label="关闭">×</button>
+      </header>
+
+      <div class="modal-content">
+        <div class="form-row">
+          <div class="form-label">当前产系</div>
+          <div id="currentProduct" class="current-product"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-label required">调整产系</div>
+          <div>
+            <div id="familyGrid" class="option-grid"></div>
+            <div id="familyError" class="field-error" hidden>请选择调整后的产系</div>
+          </div>
+        </div>
+
+        <div id="versionRow" class="form-row" hidden>
+          <div class="form-label required">产品版本</div>
+          <div>
+            <div id="versionGrid" class="option-grid version-grid"></div>
+            <div id="versionError" class="field-error" hidden>请选择悦芽产品版本</div>
+            <div id="ruleHint" class="rule-hint" hidden>
+              <span class="hint-icon">!</span>
+              <span id="ruleHintText"></span>
+            </div>
+          </div>
+        </div>
+
+        <div id="adultRuleRow" class="form-row" hidden>
+          <div class="form-label">工序处理</div>
+          <div id="adultRuleHint" class="rule-hint">
+            <span class="hint-icon">!</span>
+            <span id="adultRuleHintText"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-label required">图片</div>
+          <div>
+            <div id="uploadArea" class="upload-area">
+              <button id="uploadTrigger" class="upload-trigger" type="button">点击上传</button>
+            </div>
+            <div class="upload-note">调整产品版本前请与销售确认，照片最多上传3张</div>
+            <div id="uploadError" class="field-error" hidden>请至少上传1张调整凭证图片</div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button class="secondary-button" type="button" data-close-switch>取消</button>
+        <button id="submitSwitchButton" class="primary-button" type="button">确认</button>
+      </footer>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden>
+    <span class="toast-icon">✓</span>
+    <span id="toastText" class="toast-text"></span>
+    <button id="toastClose" class="toast-close" type="button" aria-label="关闭提示">×</button>
+  </div>
+
+  <script>
+    const FAMILY_OPTIONS = [
+      { value: "yueya", label: "悦芽" },
+      { value: "yuejian-pro", label: "悦见·专业版" },
+      { value: "yuejian-flagship", label: "悦见·旗舰版" },
+      { value: "yuejian-fast", label: "悦见·即时版" },
+      { value: "yuemei", label: "悦美版" },
+      { value: "yuejian-cycle", label: "悦见·全周期版" },
+      { value: "yuejian-3d", label: "悦见·直接3D打印" },
+      { value: "yuejian-4d-basic", label: "悦见4D·基础版" },
+      { value: "yuejian-4d-standard", label: "悦见4D·标准版" },
+      { value: "yuejian-4d-pro", label: "悦见4D·专业版" },
+      { value: "yuejian-4d-flagship", label: "悦见4D·旗舰版" },
+      { value: "yuejian-hybrid", label: "悦见4D Hybrid" },
+      { value: "yuejian-trhybrid", label: "悦见4D TRHybrid" },
+      { value: "yuejian-mr", label: "悦见4D MR" },
+      { value: "yuejian-nine", label: "悦见·专业版(九院)" }
+    ];
+
+    const VERSION_OPTIONS = [
+      { value: "y2", label: "悦芽启航4DHybrid-2年", targetClass: "y12" },
+      { value: "y1", label: "悦芽启航4DHybrid-1年", targetClass: "y12" },
+      { value: "basic", label: "悦芽基础套餐", targetClass: "earlyOther" },
+      { value: "pilot-1", label: "悦芽启航套装(1年)", targetClass: "earlyOther" },
+      { value: "pilot-2", label: "悦芽启航套装(2年)", targetClass: "earlyOther" },
+      { value: "escort", label: "悦芽护航套装", targetClass: "earlyOther" },
+      { value: "double", label: "悦芽双期套餐", targetClass: "earlyOther" },
+      { value: "star-1", label: "早矫星空版1年", targetClass: "earlyOther" },
+      { value: "star-2", label: "早矫星空版2年", targetClass: "earlyOther" },
+      { value: "global-hybrid", label: "悦芽全局4DHybrid套餐", targetClass: "earlyOther" },
+      { value: "escort-hybrid", label: "悦芽护航4DHybrid套餐", targetClass: "earlyOther" },
+      { value: "standard-child", label: "悦见4D儿童标准版", targetClass: "earlyOther" }
+    ];
+
+    const SCENARIOS = {
+      adultOral: {
+        currentClass: "adult",
+        currentFamily: "yuejian-pro",
+        currentVersion: null,
+        currentLabel: "悦见·专业版",
+        modelStatus: "oral",
+        modelLabel: "口扫模型（上下颌文件可用）",
+        shot: "../source/mes-order-detail-adult.png"
+      },
+      earlyOral: {
+        currentClass: "earlyOther",
+        currentFamily: "yueya",
+        currentVersion: "global-hybrid",
+        currentLabel: "悦芽全局4DHybrid套餐",
+        modelStatus: "oral",
+        modelLabel: "口扫模型（上下颌文件可用）",
+        shot: "../source/mes-order-detail-adult.png"
+      },
+      earlyStoneReady: {
+        currentClass: "earlyOther",
+        currentFamily: "yueya",
+        currentVersion: "global-hybrid",
+        currentLabel: "悦芽全局4DHybrid套餐",
+        modelStatus: "stoneReady",
+        modelLabel: "石膏模型（已扫描，上下颌扫描文件可用）",
+        shot: "../source/mes-order-detail-adult.png"
+      },
+      earlyStoneWaiting: {
+        currentClass: "earlyOther",
+        currentFamily: "yueya",
+        currentVersion: "global-hybrid",
+        currentLabel: "悦芽全局4DHybrid套餐",
+        modelStatus: "stoneWaiting",
+        modelLabel: "石膏模型（扫描工序未完成）",
+        shot: "../source/mes-order-detail-adult.png"
+      },
+      y1Oral: {
+        currentClass: "y12",
+        currentFamily: "yueya",
+        currentVersion: "y1",
+        currentLabel: "悦芽启航4DHybrid-1年",
+        modelStatus: "oral",
+        modelLabel: "口扫模型（上下颌文件可用）",
+        shot: "../source/mes-order-detail-adult.png"
+      }
+    };
+
+    const state = {
+      scenarioKey: "y1Oral",
+      targetFamily: null,
+      targetVersion: null,
+      uploads: [],
+      decision: null
+    };
+
+    const pageShot = document.getElementById("pageShot");
+    const scenarioSelect = document.getElementById("scenarioSelect");
+    const switchBackdrop = document.getElementById("switchBackdrop");
+    const familyGrid = document.getElementById("familyGrid");
+    const versionGrid = document.getElementById("versionGrid");
+    const versionRow = document.getElementById("versionRow");
+    const adultRuleRow = document.getElementById("adultRuleRow");
+    const uploadArea = document.getElementById("uploadArea");
+    const uploadTrigger = document.getElementById("uploadTrigger");
+    const submitSwitchButton = document.getElementById("submitSwitchButton");
+    const toast = document.getElementById("toast");
+    const toastText = document.getElementById("toastText");
+    let toastTimer = null;
+
+    function scenario() {
+      return SCENARIOS[state.scenarioKey];
+    }
+
+    function targetVersionOption() {
+      return VERSION_OPTIONS.find((item) => item.value === state.targetVersion) || null;
+    }
+
+    function targetFamilyOption() {
+      return FAMILY_OPTIONS.find((item) => item.value === state.targetFamily) || null;
+    }
+
+    function targetClass() {
+      if (!state.targetFamily) return null;
+      if (state.targetFamily !== "yueya") return "adult";
+      const version = targetVersionOption();
+      return version ? version.targetClass : null;
+    }
+
+    function targetLabel() {
+      if (state.targetFamily === "yueya") {
+        const version = targetVersionOption();
+        if (!version) return "悦芽";
+        return version.label;
+      }
+      const family = targetFamilyOption();
+      return family ? family.label : "";
+    }
+
+    function currentMatchesTarget() {
+      const current = scenario();
+      if (state.targetFamily !== current.currentFamily) return false;
+      if (state.targetFamily !== "yueya") return true;
+      return state.targetVersion === current.currentVersion;
+    }
+
+    function calculateDecision() {
+      const current = scenario();
+      const nextClass = targetClass();
+      if (!nextClass) return null;
+
+      const noReset =
+        (current.currentClass === "adult" && nextClass === "y12") ||
+        (current.currentClass === "y12" && nextClass === "adult");
+
+      if (noReset) {
+        return { type: "none", reset: false };
+      }
+
+      if (current.modelStatus === "stoneWaiting") {
+        return { type: "waitScan", reset: true };
+      }
+
+      return { type: "immediate", reset: true };
+    }
+
+    function processSteps(includeScan) {
+      const nextClass = targetClass();
+      const steps = [];
+      if (includeScan) steps.push("石膏模型扫描");
+      steps.push("接单", "模型初检");
+      if (nextClass === "earlyOther") steps.push("文字方案");
+      steps.push("模型数据分牙", "方案设计");
+      return steps;
+    }
+
+    function renderProcess(container, steps) {
+      container.innerHTML = "";
+      steps.forEach((step, index) => {
+        const stepNode = document.createElement("span");
+        stepNode.className = "process-step";
+        stepNode.textContent = step;
+        container.appendChild(stepNode);
+        if (index < steps.length - 1) {
+          const arrow = document.createElement("span");
+          arrow.className = "process-arrow";
+          arrow.textContent = "→";
+          container.appendChild(arrow);
+        }
+      });
+    }
+
+    function renderFamilyOptions() {
+      familyGrid.innerHTML = FAMILY_OPTIONS.map((item) => `
+        <label class="radio-option">
+          <input type="radio" name="targetFamily" value="${item.value}">
+          <span>${item.label}</span>
+        </label>
+      `).join("");
+    }
+
+    function renderVersionOptions() {
+      const current = scenario();
+      versionGrid.innerHTML = VERSION_OPTIONS.map((item) => {
+        const isCurrent = current.currentFamily === "yueya" && current.currentVersion === item.value;
+        return `
+        <label class="radio-option">
+          <input type="radio" name="targetVersion" value="${item.value}" ${isCurrent ? "disabled" : ""}>
+          <span>${item.label}${isCurrent ? `<i class="version-tag current">当前</i>` : ""}</span>
+        </label>
+      `;
+      }).join("");
+    }
+
+    function resetForm() {
+      const current = scenario();
+      state.targetFamily = current.currentFamily === "yueya" ? "yueya" : null;
+      state.targetVersion = null;
+      state.uploads = [];
+      state.decision = null;
+      renderVersionOptions();
+      document.querySelectorAll('input[name="targetFamily"], input[name="targetVersion"]').forEach((input) => {
+        input.checked = false;
+      });
+      if (state.targetFamily === "yueya") {
+        familyGrid.querySelector('input[value="yueya"]').checked = true;
+      }
+      versionRow.hidden = state.targetFamily !== "yueya";
+      adultRuleRow.hidden = true;
+      hideErrors();
+      renderUploads();
+      renderRuleHint();
+    }
+
+    function hideErrors() {
+      document.getElementById("familyError").hidden = true;
+      document.getElementById("versionError").hidden = true;
+      document.getElementById("uploadError").hidden = true;
+    }
+
+    function renderCurrentProduct() {
+      const current = scenario();
+      document.getElementById("currentProduct").innerHTML = current.currentFamily === "yueya"
+        ? `<strong>悦芽</strong><span class="current-version-inline">当前版本：${current.currentLabel}</span>`
+        : `<strong>${current.currentLabel}</strong>`;
+    }
+
+    function renderRuleHint() {
+      const hint = document.getElementById("ruleHint");
+      const hintText = document.getElementById("ruleHintText");
+      const adultHint = document.getElementById("adultRuleHint");
+      const adultHintText = document.getElementById("adultRuleHintText");
+      const decision = calculateDecision();
+
+      state.decision = decision;
+      hint.hidden = !decision || state.targetFamily !== "yueya";
+      adultRuleRow.hidden = !decision || state.targetFamily === "yueya";
+      hint.className = "rule-hint";
+      adultHint.className = "rule-hint";
+
+      if (!decision) return;
+
+      let copy = "";
+      if (decision.type === "none") {
+        copy = "本次属于成人产系与 Y1/Y2-Hybrid 互转，仅调整产系，不触发工序重置。";
+        hint.classList.add("no-reset");
+        adultHint.classList.add("no-reset");
+      } else if (decision.type === "waitScan") {
+        copy = "当前石膏模型尚未完成扫描。产系切换保存后，将在扫描工序完成时自动触发工序重置。";
+        hint.classList.add("waiting");
+        adultHint.classList.add("waiting");
+      } else if (scenario().modelStatus === "stoneReady") {
+        copy = "当前石膏模型已完成扫描。确认后将把上下颌扫描文件作为口扫模型，立即触发工序重置。";
+      } else {
+        copy = "当前口扫模型资料可用。确认后将立即按目标产系触发工序重置。";
+      }
+
+      hintText.textContent = copy;
+      adultHintText.textContent = copy;
+    }
+
+    function renderUploads() {
+      uploadArea.querySelectorAll(".upload-item").forEach((node) => node.remove());
+      state.uploads.forEach((name, index) => {
+        const item = document.createElement("div");
+        item.className = "upload-item";
+        item.innerHTML = `
+          <span class="upload-thumb">凭证</span>
+          <span class="upload-name" title="${name}">${name}</span>
+          <button class="remove-upload" type="button" data-upload-index="${index}" aria-label="删除${name}">×</button>
+        `;
+        uploadArea.insertBefore(item, uploadTrigger);
+      });
+      uploadTrigger.disabled = state.uploads.length >= 3;
+      uploadTrigger.textContent = state.uploads.length >= 3 ? "已达3张" : "点击上传";
+    }
+
+    function validateForm() {
+      hideErrors();
+      let valid = true;
+
+      if (!state.targetFamily) {
+        document.getElementById("familyError").hidden = false;
+        valid = false;
+      }
+      if (state.targetFamily === "yueya" && !state.targetVersion) {
+        document.getElementById("versionError").hidden = false;
+        valid = false;
+      }
+      if (state.uploads.length === 0) {
+        document.getElementById("uploadError").hidden = false;
+        valid = false;
+      }
+      if (valid && currentMatchesTarget()) {
+        document.getElementById("familyError").textContent = "调整后的产系不能与当前产系相同";
+        document.getElementById("familyError").hidden = false;
+        valid = false;
+      } else {
+        document.getElementById("familyError").textContent = "请选择调整后的产系";
+      }
+      return valid;
+    }
+
+    function openSwitchModal() {
+      resetForm();
+      renderCurrentProduct();
+      switchBackdrop.hidden = false;
+    }
+
+    function closeSwitchModal() {
+      switchBackdrop.hidden = true;
+    }
+
+    function resultMessage(decision) {
+      if (decision.type === "none") {
+        return "产系切换成功";
+      }
+      if (decision.type === "waitScan") {
+        return "产系切换已保存，待石膏模型扫描工序完成后自动触发工序重置";
+      }
+      return "产系切换成功，已触发工序重置";
+    }
+
+    function showSuccessToast(message) {
+      window.clearTimeout(toastTimer);
+      toastText.textContent = message;
+      toast.hidden = false;
+      toastTimer = window.setTimeout(() => {
+        toast.hidden = true;
+      }, 4200);
+    }
+
+    function submitSwitch() {
+      if (!validateForm()) return;
+
+      state.decision = calculateDecision();
+      submitSwitchButton.disabled = true;
+      submitSwitchButton.textContent = "提交中...";
+      window.setTimeout(() => {
+        const message = resultMessage(state.decision);
+        submitSwitchButton.disabled = false;
+        submitSwitchButton.textContent = "确认";
+        closeSwitchModal();
+        showSuccessToast(message);
+      }, 450);
+    }
+
+    renderFamilyOptions();
+    renderVersionOptions();
+
+    document.getElementById("entryButton").addEventListener("click", openSwitchModal);
+    document.querySelectorAll("[data-close-switch]").forEach((button) => {
+      button.addEventListener("click", closeSwitchModal);
+    });
+
+    familyGrid.addEventListener("change", (event) => {
+      if (event.target.name !== "targetFamily") return;
+      state.targetFamily = event.target.value;
+      state.targetVersion = null;
+      versionGrid.querySelectorAll("input").forEach((input) => {
+        input.checked = false;
+      });
+      versionRow.hidden = state.targetFamily !== "yueya";
+      document.getElementById("familyError").hidden = true;
+      document.getElementById("versionError").hidden = true;
+      renderRuleHint();
+    });
+
+    versionGrid.addEventListener("change", (event) => {
+      if (event.target.name !== "targetVersion") return;
+      state.targetVersion = event.target.value;
+      document.getElementById("versionError").hidden = true;
+      renderRuleHint();
+    });
+
+    uploadTrigger.addEventListener("click", () => {
+      if (state.uploads.length >= 3) return;
+      state.uploads.push(`产系调整凭证-${state.uploads.length + 1}.png`);
+      document.getElementById("uploadError").hidden = true;
+      renderUploads();
+    });
+
+    uploadArea.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-upload-index]");
+      if (!button) return;
+      state.uploads.splice(Number(button.dataset.uploadIndex), 1);
+      renderUploads();
+    });
+
+    submitSwitchButton.addEventListener("click", submitSwitch);
+    document.getElementById("toastClose").addEventListener("click", () => {
+      window.clearTimeout(toastTimer);
+      toast.hidden = true;
+    });
+
+    scenarioSelect.addEventListener("change", () => {
+      state.scenarioKey = scenarioSelect.value;
+      pageShot.src = scenario().shot;
+      if (!switchBackdrop.hidden) {
+        resetForm();
+        renderCurrentProduct();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (!switchBackdrop.hidden) {
+        closeSwitchModal();
+      }
+    });
+  </script>
+</body>
+</html>
